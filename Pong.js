@@ -19,6 +19,7 @@ let moveDir = 0;
 let highScore = parseInt(localStorage.getItem("highScore")) || 0;
 let prevHighScore = parseInt(localStorage.getItem("prevHighScore")) || 0;
 let showRainbow = false;
+let rainbowTimeout = null;
 
 function drawRect(x, y, w, h, color = "white") {
   ctx.fillStyle = color;
@@ -113,6 +114,8 @@ function update() {
     scoreSound.pause(); scoreSound.currentTime = 0; scoreSound.play();
     reduceMusicTemporarily();
     resetBall();
+    // Remove rainbow if present after a score event
+    clearRainbow();
   }
 
   if (ball.x + ball.r > canvas.width) {
@@ -122,12 +125,25 @@ function update() {
       highScore = user.score;
       localStorage.setItem("highScore", highScore);
       localStorage.setItem("prevHighScore", prevHighScore);
+
       showRainbow = true;
+      // Clear previous timeout if any
+      if (rainbowTimeout) clearTimeout(rainbowTimeout);
+      // Hide rainbow after 2 seconds
+      rainbowTimeout = setTimeout(() => {
+        showRainbow = false;
+      }, 2000);
     }
     scoreSound.pause(); scoreSound.currentTime = 0; scoreSound.play();
     reduceMusicTemporarily();
     resetBall();
+    // Remove rainbow if present after a score event and not a new high score
+    if (user.score <= highScore && !showRainbow) clearRainbow();
   }
+}
+function clearRainbow() {
+  if (rainbowTimeout) clearTimeout(rainbowTimeout);
+  showRainbow = false;
 }
 function render() {
   drawRect(0, 0, canvas.width, canvas.height, "black");
@@ -197,6 +213,6 @@ function startGame(level) {
   user.score = 0;
   ai.score = 0;
   showRainbow = false;
-  resetBall();
+  if (rainbowTimeout) clearTimeout(rainbowTimeout);
   loop();
 }
