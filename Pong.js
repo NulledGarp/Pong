@@ -1,43 +1,63 @@
 const canvas = document.getElementById("pong");
 const ctx = canvas.getContext("2d");
+const music = document.getElementById("bgm");
+const hitSound = document.getElementById("hitSound");
+const scoreSound = document.getElementById("scoreSound");
+const pauseOverlay = document.getElementById("pauseOverlay");
 
 const user = { x: 0, y: 150, w: 10, h: 100, score: 0 };
 const ai = { x: 590, y: 150, w: 10, h: 100, score: 0 };
 const ball = { x: 300, y: 200, r: 10, speed: 5, vx: 5, vy: 5 };
 
-let aiLevel = 0.1;
+let keys = {};
 let gameRunning = false;
+let paused = false;
+let aiLevel = 0.1;
+let moveDir = 0;
+let highScore = 0;
 
-// Draw functions
-function rect(x, y, w, h, color = "white") {
+function drawRect(x, y, w, h, color = "white") {
   ctx.fillStyle = color;
   ctx.fillRect(x, y, w, h);
 }
-function circle(x, y, r, color = "white") {
+function drawCircle(x, y, r, color = "white") {
   ctx.fillStyle = color;
   ctx.beginPath();
   ctx.arc(x, y, r, 0, Math.PI * 2);
   ctx.fill();
 }
-function text(text, x, y) {
+function drawText(text, x, y) {
   ctx.fillStyle = "white";
   ctx.font = "30px Arial";
   ctx.fillText(text, x, y);
 }
-function net() {
-  for (let i = 0; i < canvas.height; i += 20) {
-    rect(canvas.width / 2 - 1, i, 2, 10);
-  }
+function drawNet() {
+  for (let i = 0; i < canvas.height; i += 20)
+    drawRect(canvas.width / 2 - 1, i, 2, 10);
 }
-
+function fadeMusic(target = 0.5, delay = 1000) {
+  const step = (target - music.volume) / 10;
+  let count = 0;
+  const fade = setInterval(() => {
+    if (count++ >= 10) return clearInterval(fade);
+    music.volume = Math.min(1, Math.max(0, music.volume + step));
+  }, delay / 10);
+}
+function reduceMusicTemporarily() {
+  music.volume = 0.2;
+  fadeMusic(0.5, 1000);
+}
 function resetBall() {
   ball.x = canvas.width / 2;
   ball.y = canvas.height / 2;
-  ball.vx *= -1;
-  ball.speed = 5;
-}
+  ball.speed = 5 + aiLevel * 20;
 
-// Collision
+  let angle = Math.random() * Math.PI / 2 - Math.PI / 4; // -45° to 45°
+  let direction = Math.random() < 0.5 ? 1 : -1;
+
+  ball.vx = direction * ball.speed * Math.cos(angle);
+  ball.vy = ball.speed * Math.sin(angle);
+}
 function collide(p, b) {
   return (
     b.x - b.r < p.x + p.w &&
@@ -46,55 +66,68 @@ function collide(p, b) {
     b.y + b.r > p.y
   );
 }
-
-// Game update
 function update() {
+  if (paused) return;
+
   ball.x += ball.vx;
   ball.y += ball.vy;
 
-  // Bounce top/bottom
   if (ball.y - ball.r < 0 || ball.y + ball.r > canvas.height)
     ball.vy *= -1;
 
-  // AI movement
   ai.y += (ball.y - (ai.y + ai.h / 2)) * aiLevel;
 
-  // Player collision
-  let player = ball.x < canvas.width / 2 ? user : ai;
+  if (keys["ArrowUp"] || moveDir === -1) user.y -= 6;
+  if (keys["ArrowDown"] || moveDir === 1) user.y += 6;
+  user.y = Math.max(0, Math.min(canvas.height - user.h, user.y));
 
-  if (collide(player, ball)) {
-    let collidePoint = ball.y - (player.y + player.h / 2);
-    collidePoint /= player.h / 2;
+  const paddle = ball.x < canvas.width / 2 ? user : ai;
+  if (collide(paddle, ball)) {
+    // FAST hit sound
+    hitSound.pause();
+    hitSound.currentTime = 0;
+    hitSound.play();
+    reduceMusicTemporarily();
+
+    let collidePoint = ball.y - (paddle.y + paddle.h / 2);
+    collidePoint /= paddle.h / 2;
     let angle = collidePoint * Math.PI / 4;
     let direction = ball.x < canvas.width / 2 ? 1 : -1;
+
     ball.vx = direction * ball.speed * Math.cos(angle);
     ball.vy = ball.speed * Math.sin(angle);
     ball.speed += 0.5;
   }
 
-  // Score
   if (ball.x - ball.r < 0) {
     ai.score++;
+    scoreSound.pause();
+    scoreSound.currentTime = 0;
+    scoreSound.play();
+    reduceMusicTemporarily();
     resetBall();
   }
+
   if (ball.x + ball.r > canvas.width) {
     user.score++;
+    if (user.score > highScore) highScore = user.score;
+    scoreSound.pause();
+    scoreSound.currentTime = 0;
+    scoreSound.play();
+    reduceMusicTemporarily();
     resetBall();
   }
 }
-
-// Render game
 function render() {
-  rect(0, 0, canvas.width, canvas.height, "black");
-  net();
-  text(user.score, 150, 50);
-  text(ai.score, 450, 50);
-  rect(user.x, user.y, user.w, user.h);
-  rect(ai.x, ai.y, ai.w, ai.h);
-  circle(ball.x, ball.y, ball.r);
+  drawRect(0, 0, canvas.width, canvas.height, "black");
+  drawNet();
+  drawText(user.score, 150, 50);
+  drawText(ai.score, 450, 50);
+  drawText("High: " + highScore, 230, 390);
+  drawRect(user.x, user.y, user.w, user.h);
+  drawRect(ai.x, ai.y, ai.w, ai.h);
+  drawCircle(ball.x, ball.y, ball.r);
 }
-
-// Game loop
 function loop() {
   if (!gameRunning) return;
   update();
@@ -102,17 +135,37 @@ function loop() {
   requestAnimationFrame(loop);
 }
 
-// Control player paddle
-canvas.addEventListener("mousemove", e => {
-  let rectCanvas = canvas.getBoundingClientRect();
-  user.y = e.clientY - rectCanvas.top - user.h / 2;
+// Controls
+window.addEventListener("keydown", (e) => {
+  keys[e.key] = true;
+  if (e.key.toLowerCase() === "p") {
+    paused = !paused;
+    pauseOverlay.style.display = paused ? "flex" : "none";
+    if (!paused) loop();
+  }
+});
+window.addEventListener("keyup", (e) => {
+  keys[e.key] = false;
 });
 
-// Start game from menu
+function moveUp() { moveDir = -1; }
+function moveDown() { moveDir = 1; }
+function stopMove() { moveDir = 0; }
+
+document.addEventListener("touchmove", (e) => {
+  if (gameRunning) e.preventDefault();
+}, { passive: false });
+
 function startGame(level) {
   aiLevel = level;
   document.getElementById("menu").style.display = "none";
   canvas.style.display = "block";
+  music.volume = 0.5;
+  music.play();
   gameRunning = true;
+  paused = false;
+  user.score = 0;
+  ai.score = 0;
+  resetBall();
   loop();
 }

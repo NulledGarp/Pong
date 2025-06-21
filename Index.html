@@ -2,30 +2,77 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Simple Pong</title>
+  <title>Ultimate Pong</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background: #111; color: white; font-family: Arial; text-align: center; }
-    canvas { background: #000; display: block; margin: 20px auto; border: 2px solid white; }
+    body {
+      margin: 0;
+      background: #111;
+      color: white;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      overflow: hidden;
+    }
     #menu {
       display: flex;
       flex-direction: column;
-      gap: 10px;
       align-items: center;
       justify-content: center;
       height: 100vh;
     }
     .btn {
-      padding: 10px 20px;
+      padding: 12px 24px;
+      margin: 8px;
       font-size: 18px;
       background: #333;
-      color: white;
       border: 1px solid white;
+      color: white;
+      border-radius: 6px;
       cursor: pointer;
-      border-radius: 5px;
     }
-    .btn:hover {
-      background: #555;
+    canvas {
+      display: none;
+      background: #000;
+      margin: 0 auto;
+      border: 2px solid white;
+      touch-action: none;
+    }
+    #pauseOverlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.7);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 2;
+    }
+    #pauseOverlay h1 {
+      font-size: 48px;
+      color: white;
+    }
+    #mobileControls {
+      display: none;
+      position: fixed;
+      bottom: 10px;
+      width: 100%;
+      justify-content: center;
+      gap: 30px;
+      z-index: 3;
+    }
+    .touch-btn {
+      background: #444;
+      border: 2px solid white;
+      border-radius: 50%;
+      width: 60px;
+      height: 60px;
+      color: white;
+      font-size: 24px;
+    }
+    @media (max-width: 768px) {
+      #mobileControls { display: flex; }
     }
   </style>
 </head>
@@ -33,13 +80,24 @@
 
 <div id="menu">
   <h1>Pong Game</h1>
-  <p>Select Difficulty</p>
+  <p>Choose Difficulty</p>
   <button class="btn" onclick="startGame(0.05)">Easy</button>
   <button class="btn" onclick="startGame(0.1)">Medium</button>
   <button class="btn" onclick="startGame(0.2)">Hard</button>
 </div>
 
-<canvas id="pong" width="600" height="400" style="display:none;"></canvas>
-<script src="Pong.js"></script> 
+<div id="pauseOverlay"><h1>Paused</h1></div>
+<canvas id="pong" width="600" height="400"></canvas>
+
+<div id="mobileControls">
+  <button class="touch-btn" ontouchstart="moveUp()" ontouchend="stopMove()">⬆</button>
+  <button class="touch-btn" ontouchstart="moveDown()" ontouchend="stopMove()">⬇</button>
+</div>
+
+<audio id="bgm" loop src="assets/bgm.mp3"></audio>
+<audio id="hitSound" src="assets/hit.mp3"></audio>
+<audio id="scoreSound" src="assets/score.mp3"></audio>
+
+<script src="Pong.js"></script>
 </body>
 </html>
