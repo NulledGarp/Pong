@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Simple Pong</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #111; color: white; font-family: Arial; text-align: center; }
+    canvas { background: #000; display: block; margin: 20px auto; border: 2px solid white; }
+    #menu {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+    .btn {
+      padding: 10px 20px;
+      font-size: 18px;
+      background: #333;
+      color: white;
+      border: 1px solid white;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+    .btn:hover {
+      background: #555;
+    }
+  </style>
+</head>
+<body>
+
+<div id="menu">
+  <h1>Pong Game</h1>
+  <p>Select Difficulty</p>
+  <button class="btn" onclick="startGame(0.05)">Easy</button>
+  <button class="btn" onclick="startGame(0.1)">Medium</button>
+  <button class="btn" onclick="startGame(0.2)">Hard</button>
+</div>
+
+<canvas id="pong" width="600" height="400" style="display:none;"></canvas>
+<script src="Pong.js"></script> 
+</body>
+</html>
